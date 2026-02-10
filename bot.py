@@ -4,20 +4,13 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN is not set")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🚀 Your Movie Bot is LIVE on cloud!"
-    )
+    await update.message.reply_text("🚀 Your Movie Bot is LIVE on cloud!")
 
-app = (
-    ApplicationBuilder()
-    .token(BOT_TOKEN)
-    .connect_timeout(60)
-    .read_timeout(60)
-    .build()
-)
-
+app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 
-print("Bot started...")
 app.run_polling()
