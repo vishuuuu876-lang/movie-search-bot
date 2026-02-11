@@ -5,18 +5,25 @@ from pymongo import MongoClient
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+if not BOT_TOKEN:
+raise RuntimeError("BOT_TOKEN missing")
+
+if not MONGO_URL:
+raise RuntimeError("MONGO_URL missing")
+
+if not CHANNEL_ID:
+raise RuntimeError("CHANNEL_ID missing")
+
+CHANNEL_ID = int(CHANNEL_ID)
 
 client = MongoClient(MONGO_URL)
 db = client["movie_db"]
 collection = db["movies"]
 
-Start command
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-await update.message.reply_text("🎬 Movie Bot is Ready!\nSend /movie movie_name")
-
-Auto Index movies from channel
+await update.message.reply_text("🎬 Movie Bot is Running!")
 
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if update.channel_post and update.channel_post.document:
@@ -32,12 +39,10 @@ if update.channel_post and update.channel_post.document:
 
     print("Indexed:", file_name)
 
-Search command
-
 async def movie(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if not context.args:
-    await update.message.reply_text("Send like this:\n/movie avengers")
+    await update.message.reply_text("Use like:\n/movie avengers")
     return
 
 query = " ".join(context.args)
@@ -57,15 +62,12 @@ for film in results:
     )
 
 if not found:
-    await update.message.reply_text("❌ Movie not found.")
+    await update.message.reply_text("Movie not found.")
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("movie", movie))
-
-Listen to channel posts
-
 app.add_handler(MessageHandler(filters.ALL, auto_index))
 
 print("🚀 Bot Running...")
