@@ -1,7 +1,14 @@
 import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import re
 from pymongo import MongoClient
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    MessageHandler,
+    CommandHandler,
+    ContextTypes,
+    filters,
+)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
@@ -13,23 +20,79 @@ if not BOT_TOKEN:
 if not MONGO_URL:
     raise RuntimeError("MONGO_URL missing")
 
-# MongoDB Connection
 client = MongoClient(MONGO_URL)
 db = client["movie_bot"]
 collection = db["movies"]
 
 print("✅ MongoDB Connected Successfully")
 
-# Start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🚀 Movie Bot Running on Railway!")
 
-# Build bot
+# START COMMAND
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🎬 Movie Bot Ready!\n\nJust send me a movie name."
+    )
+
+
+# AUTO INDEX WHEN FILE POSTED IN CHANNEL
+async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    msg = update.channel_post
+
+    file_id = None
+    file_name = "Unknown"
+
+    if msg.document:
+        file_id = msg.document.file_id
+        file_name = msg.document.file_name
+
+    elif msg.video:
+        file_id = msg.video.file_id
+        file_name = msg.video.file_name or "Video File"
+
+    if file_id:
+
+        # avoid duplicates
+        if collection.find_one({"file_id": file_id}):
+            return
+
+        collection.insert_one({
+            "file_name": file_name.lower(),
+            "file_id": file_id
+        })
+
+        print(f"✅ Indexed: {file_name}")
+
+
+# SEARCH MOVIE
+async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.message.text.lower()
+
+    results = collection.find({
+        "file_name": {"$regex": query}
+    }).limit(5)
+
+    found = False
+
+    for movie in results:
+        found = True
+        await update.message.reply_document(movie["file_id"])
+
+    if not found:
+        await update.message.reply_text("❌ Movie not found.")
+
+
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 
-print("✅ Bot Started Successfully")
+# channel indexing
+app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
 
-# THIS LINE IS CRITICAL
-app.run_polling(close_loop=False)
+# user search
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
+
+print("🚀 Bot Started Successfully")
+
+app.run_polling()
