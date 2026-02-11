@@ -83,16 +83,28 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Movie not found.")
 
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+# ---------------- MAIN ----------------
 
-app.add_handler(CommandHandler("start", start))
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-# channel indexing
-app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
+    # start command
+    app.add_handler(CommandHandler("start", start))
 
-# user search
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
+    # channel indexing
+    app.add_handler(
+        MessageHandler(filters.Chat(CHANNEL_ID), auto_index)
+    )
 
-print("🚀 Bot Started Successfully")
+    # user search
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, search)
+    )
 
-app.run_polling()
+    print("✅ Bot Started Successfully")
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
