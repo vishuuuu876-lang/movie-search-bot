@@ -1,117 +1,72 @@
 import os
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters,
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from pymongo import MongoClient
-
-# ---------------- CONFIG ----------------
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
-
-if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN is not set")
-
-if not MONGO_URL:
-    raise RuntimeError("MONGO_URL is not set")
-
-# ---------------- DATABASE ----------------
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 
 client = MongoClient(MONGO_URL)
-db = client["moviebot"]
-movies = db["movies"]
+db = client["movie_db"]
+collection = db["movies"]
 
-# Create index for FAST search (VERY IMPORTANT)
-movies.create_index("title")
-
-print("✅ MongoDB Connected Successfully")
-
-# ---------------- COMMANDS ----------------
+Start command
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🎬 Movie Bot is LIVE!\n\n"
-        "Send movies to auto-index.\n"
-        "Use:\n"
-        "/movie <name> to search."
-    )
+await update.message.reply_text("🎬 Movie Bot is Ready!\nSend /movie movie_name")
 
-# ---------------- AUTO INDEX ----------------
+Auto Index movies from channel
 
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message
+if update.channel_post and update.channel_post.document:
 
-    file = message.document or message.video
-    if not file:
-        return
+    file_name = update.channel_post.document.file_name
+    message_id = update.channel_post.message_id
 
-    title = (
-        message.caption
-        or file.file_name
-        or "unknown movie"
-    ).lower()
+    collection.update_one(
+        {"file_name": file_name},
+        {"$set": {"message_id": message_id}},
+        upsert=True
+    )
 
-    file_id = file.file_id
-    size = file.file_size
+    print("Indexed:", file_name)
 
-    # Avoid duplicates
-    if movies.find_one({"file_id": file_id}):
-        return
+Search command
 
-    movies.insert_one({
-        "title": title,
-        "file_id": file_id,
-        "size": size
-    })
+async def movie(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    await message.reply_text("✅ Movie indexed successfully!")
+if not context.args:
+    await update.message.reply_text("Send like this:\n/movie avengers")
+    return
 
-# ---------------- SEARCH ----------------
+query = " ".join(context.args)
 
-async def movie_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text(
-            "❌ Usage:\n/movie movie_name"
-        )
-        return
+results = collection.find({
+    "file_name": {"$regex": query, "$options": "i"}
+}).limit(5)
 
-    query = " ".join(context.args).lower()
+found = False
 
-    results = movies.find({
-        "title": {"$regex": query}
-    }).limit(5)
+for film in results:
+    found = True
+    await context.bot.forward_message(
+        chat_id=update.effective_chat.id,
+        from_chat_id=CHANNEL_ID,
+        message_id=film["message_id"]
+    )
 
-    found = False
-
-    for movie in results:
-        found = True
-        await update.message.reply_document(movie["file_id"])
-
-    if not found:
-        await update.message.reply_text(
-            "❌ No movie found."
-        )
-
-# ---------------- APP ----------------
+if not found:
+    await update.message.reply_text("❌ Movie not found.")
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("movie", movie_search))
+app.add_handler(CommandHandler("movie", movie))
 
-# Auto index handler
-app.add_handler(
-    MessageHandler(
-        filters.Document.ALL | filters.VIDEO,
-        auto_index
-    )
-)
+Listen to channel posts
 
-print("🚀 Bot Started Successfully")
+app.add_handler(MessageHandler(filters.ALL, auto_index))
 
+print("🚀 Bot Running...")
 app.run_polling()
