@@ -70,8 +70,8 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text.lower()
 
     results = collection.find({
-        "file_name": {"$regex": query}
-    }).limit(5)
+    "file_name": {"$regex": query, "$options": "i"}
+}).limit(5)
 
     found = False
 
