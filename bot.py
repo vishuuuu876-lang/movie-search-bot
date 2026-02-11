@@ -20,13 +20,16 @@ collection = db["movies"]
 
 print("✅ MongoDB Connected Successfully")
 
+# Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🚀 Movie Bot is LIVE on Cloud!")
+    await update.message.reply_text("🚀 Movie Bot Running on Railway!")
 
+# Build bot
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 
 print("✅ Bot Started Successfully")
 
-app.run_polling()
+# THIS LINE IS CRITICAL
+app.run_polling(close_loop=False)
