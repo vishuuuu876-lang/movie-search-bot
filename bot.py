@@ -12,8 +12,7 @@ from telegram.ext import (
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
-
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN missing")
 
