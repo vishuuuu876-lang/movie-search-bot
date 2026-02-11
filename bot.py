@@ -1,9 +1,8 @@
 import os
-import re
 from pymongo import MongoClient
 from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder,
+    Application,
     MessageHandler,
     CommandHandler,
     ContextTypes,
@@ -13,12 +12,15 @@ from telegram.ext import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
+
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN missing")
 
 if not MONGO_URL:
     raise RuntimeError("MONGO_URL missing")
 
+
+# MongoDB
 client = MongoClient(MONGO_URL)
 db = client["movie_bot"]
 collection = db["movies"]
@@ -37,21 +39,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     msg = update.channel_post
+    if not msg:
+        return
 
     file_id = None
     file_name = "Unknown"
 
     if msg.document:
         file_id = msg.document.file_id
-        file_name = msg.document.file_name
+        file_name = msg.document.file_name or "Document"
 
     elif msg.video:
         file_id = msg.video.file_id
-        file_name = msg.video.file_name or "Video File"
+        file_name = msg.video.file_name or "Video"
 
     if file_id:
 
-        # avoid duplicates
         if collection.find_one({"file_id": file_id}):
             return
 
@@ -66,11 +69,14 @@ async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # SEARCH MOVIE
 async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if not update.message:
+        return
+
     query = update.message.text.lower()
 
-    results = collection.find({
-    "file_name": {"$regex": query, "$options": "i"}
-}).limit(5)
+    results = collection.find(
+        {"file_name": {"$regex": query, "$options": "i"}}
+    ).limit(5)
 
     found = False
 
@@ -85,17 +91,15 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------- MAIN ----------------
 
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # start command
+    app = Application.builder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
 
-    # channel indexing
     app.add_handler(
         MessageHandler(filters.Chat(CHANNEL_ID), auto_index)
     )
 
-    # user search
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, search)
     )
