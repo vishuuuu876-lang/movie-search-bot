@@ -23,13 +23,12 @@ db = client["movie_db"]
 collection = db["movies"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-await update.message.reply_text("🎬 Movie Bot is Running!")
+await update.message.reply_text("🎬 Movie Bot Running!")
 
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if update.channel_post and update.channel_post.document:
-
-    file_name = update.channel_post.document.file_name
-    message_id = update.channel_post.message_id
+file_name = update.channel_post.document.file_name
+message_id = update.channel_post.message_id
 
     collection.update_one(
         {"file_name": file_name},
