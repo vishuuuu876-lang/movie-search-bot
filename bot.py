@@ -121,10 +121,11 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not update.message:
         return
-    
+
     user_id = update.effective_user.id
 
-    if not is_admin(user_id):
+    # Admin check
+    if user_id not in ADMINS:
         return
 
     if not context.args:
@@ -141,18 +142,19 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status_msg = await update.message.reply_text("🚀 Broadcasting started...")
 
     for user in users:
-    try:
-        await context.bot.send_message(
-            chat_id=user["user_id"],
-            text=message_text
-        )
 
-        success += 1
-        await asyncio.sleep(0.05)   # ⭐ IMPORTANT
+        try:
+            await context.bot.send_message(
+                chat_id=user["user_id"],
+                text=message_text
+            )
 
-    except Exception as e:
-        print("Broadcast error:", e)
-        failed += 1
+            success += 1
+            await asyncio.sleep(0.05)  # prevents telegram flood limit
+
+        except Exception as e:
+            print("Broadcast error:", e)
+            failed += 1
 
     await status_msg.edit_text(
         f"✅ Broadcast Complete!\n\n"
