@@ -203,6 +203,7 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     joined = await check_force_join(user_id, context)
 
+    # 🔒 FORCE JOIN SYSTEM
     if not joined:
 
         keyboard = [
@@ -211,19 +212,19 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("✅ Joined", callback_data="check_join")]
         ]
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
         await update.message.reply_text(
             "⚠️ Please join both channels to use this bot.",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
-    query = update.message.text.lower()
-    
+
+    # 🔎 SEARCH STARTS HERE
+    query = update.message.text.strip().lower()
+
     results = collection.find(
-    {"$text": {"$search": query}}
-).limit(5)
+        {"$text": {"$search": query}}
+    ).limit(5)
 
     found = False
 
@@ -231,19 +232,21 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         found = True
         await update.message.reply_document(movie["file_id"])
 
-if not found:
 
-    movies = collection.find({}, {"file_name": 1}).limit(1000)
-    movie_list = [m["file_name"] for m in movies]
+    # 🤖 AUTOCORRECT (Fuzzy Suggestion)
+    if not found:
 
-    suggestion = process.extractOne(query, movie_list, score_cutoff=60)
+        movies = collection.find({}, {"file_name": 1}).limit(1000)
+        movie_list = [m["file_name"] for m in movies]
 
-    if suggestion:
-        await update.message.reply_text(
-            f"❌ Movie not found.\n\nDid you mean 👉 {suggestion[0]} ?"
-        )
-    else:
-        await update.message.reply_text("❌ Movie not found.")
+        suggestion = process.extractOne(query, movie_list, score_cutoff=60)
+
+        if suggestion:
+            await update.message.reply_text(
+                f"❌ Movie not found.\n\nDid you mean 👉 {suggestion[0]}?"
+            )
+        else:
+            await update.message.reply_text("❌ Movie not found.")
         
 # ---------------- MAIN ----------------
 
