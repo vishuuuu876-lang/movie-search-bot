@@ -37,7 +37,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # AUTO INDEX WHEN FILE POSTED IN CHANNEL
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("CHAT ID:", update.channel_post.chat.id)
+    print("RAW UPDATE:", update)
 
     msg = update.channel_post
     if not msg:
