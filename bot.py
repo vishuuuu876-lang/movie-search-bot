@@ -206,7 +206,7 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     joined = await check_force_join(user_id, context)
 
-    # 🔒 FORCE JOIN SYSTEM
+    # 🔐 FORCE JOIN
     if not joined:
 
         keyboard = [
@@ -223,23 +223,24 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     # 🔎 SEARCH STARTS HERE
-    query = update.message.text.strip().lower()
+    query = str(update.message.text).strip().lower()
 
     results = collection.find(
         {"$text": {"$search": query}}
     ).limit(5)
 
-    found = False
+    movies_found = list(results)
 
-    for movie in results:
-        found = True
-        await update.message.reply_document(movie["file_id"])
+    # ✅ SEND MOVIES
+    if movies_found:
+        for movie in movies_found:
+            await update.message.reply_document(movie["file_id"])
+        return
 
-# 🎬 AUTOCORRECT (Fuzzy Suggestion)
-if not found:
 
+    # 🧠 AUTOCORRECT (FUZZY)
     movies = collection.find({}, {"file_name": 1}).limit(1000)
-    movie_list = [m["file_name"] for m in movies]
+    movie_list = [m["file_name"] for m in movies if "file_name" in m]
 
     suggestion = process.extractOne(query, movie_list, score_cutoff=60)
 
@@ -247,15 +248,15 @@ if not found:
 
         suggested_movie = suggestion[0]
 
-        keyboard = [
-            [InlineKeyboardButton(
+        keyboard = [[
+            InlineKeyboardButton(
                 f"🎬 {suggested_movie}",
                 callback_data=f"suggest_{suggested_movie}"
-            )]
-        ]
+            )
+        ]]
 
         await update.message.reply_text(
-            f"❌ Movie not found.\n\nDid you mean **{suggested_movie}**?",
+            f"❌ Movie not found.\n\nDid you mean 👉 **{suggested_movie}**?",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )
