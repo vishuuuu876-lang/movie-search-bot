@@ -167,10 +167,10 @@ async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     msg = update.channel_post
 
-if not msg:
-    return
+    if not msg:
+        return
 
-print("CHANNEL ID:", msg.chat.id)
+    print("CHANNEL ID:", msg.chat.id)
 
     file_id = None
     file_name = "Unknown"
@@ -185,6 +185,7 @@ print("CHANNEL ID:", msg.chat.id)
 
     if file_id:
 
+        # prevent duplicate save
         if collection.find_one({"file_id": file_id}):
             return
 
