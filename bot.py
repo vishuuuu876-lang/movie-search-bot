@@ -56,7 +56,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not joined:
 
-        keyboard = [
+    keyboard = [
             [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/+zqWLUjg6wEw2ZGJk")],
             [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+CZ5r2Hcn9fg3YWY0")],
             [InlineKeyboardButton("✅ Joined", callback_data="check_join")]
@@ -84,7 +84,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     joined = await check_force_join(user_id, context)
 
     if joined:
-        await query.edit_message_text(
+            await query.edit_message_text(
             "✅ You can now use the bot!\nSend a movie name."
         )
     else:
