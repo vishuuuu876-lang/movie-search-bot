@@ -113,29 +113,27 @@ async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # SEARCH MOVIE
 async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message:
-    return
-
-user_id = update.effective_user.id
-joined = await check_force_join(user_id, context)
-
-if not joined:
-
-    keyboard = [
-        [InlineKeyboardButton("📢 Join Channel 1", url=CHANNEL_1_LINK)],
-        [InlineKeyboardButton("📢 Join Channel 2", url=CHANNEL_2_LINK)],
-        [InlineKeyboardButton("✅ Joined", callback_data="check_join")]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text(
-        "⚠️ Please join both channels to use this bot.",
-        reply_markup=reply_markup
-    )
-    return
 
     if not update.message:
+        return
+
+    user_id = update.effective_user.id
+    joined = await check_force_join(user_id, context)
+
+    if not joined:
+
+        keyboard = [
+            [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/+CZ5r2Hcn9fg3YWY0")],
+            [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+zqWLUjg6wEw2ZGJk")],
+            [InlineKeyboardButton("✅ Joined", callback_data="check_join")]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(
+            "⚠️ Please join both channels to use this bot.",
+            reply_markup=reply_markup
+        )
         return
 
     query = update.message.text.lower()
@@ -152,7 +150,6 @@ if not joined:
 
     if not found:
         await update.message.reply_text("❌ Movie not found.")
-
 
 # ---------------- MAIN ----------------
 
