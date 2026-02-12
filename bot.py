@@ -252,7 +252,7 @@ def main():
     app.add_handler(CommandHandler("stats", stats))
 
     # ✅ Button clicks (Force Join)
-    app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(CallbackQueryHandler(button, pattern="check_join"))
 
     # ✅ Auto index movies from channel
     app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
