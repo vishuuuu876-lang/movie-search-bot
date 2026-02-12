@@ -1,5 +1,6 @@
 import os
 from pymongo import MongoClient
+import asyncio
 from rapidfuzz import process
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -53,8 +54,9 @@ async def check_force_join(user_id, context):
 
         return False
 
-    except:
-        return False
+    except Exception as e:
+    print("Force join error:", e)
+    return False
         
 async def save_user(user):
 
@@ -69,6 +71,9 @@ async def save_user(user):
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+        if not update.message:
+        return
+    
     # Allow only admins
     if update.effective_user.id not in ADMINS:
         return
@@ -114,6 +119,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if not update.message:
+        return
+    
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
@@ -133,15 +141,18 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status_msg = await update.message.reply_text("🚀 Broadcasting started...")
 
     for user in users:
-        try:
-            await context.bot.send_message(
-                chat_id=user["user_id"],
-                text=message_text
-            )
-            success += 1
+    try:
+        await context.bot.send_message(
+            chat_id=user["user_id"],
+            text=message_text
+        )
 
-        except:
-            failed += 1
+        success += 1
+        await asyncio.sleep(0.05)   # ⭐ IMPORTANT
+
+    except Exception as e:
+        print("Broadcast error:", e)
+        failed += 1
 
     await status_msg.edit_text(
         f"✅ Broadcast Complete!\n\n"
@@ -152,11 +163,12 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # AUTO INDEX WHEN FILE POSTED IN CHANNEL
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if update.channel_post:
-        print("CHANNEL ID:", update.channel_post.chat.id)
     msg = update.channel_post
-    if not msg:
-        return
+
+if not msg:
+    return
+
+print("CHANNEL ID:", msg.chat.id)
 
     file_id = None
     file_name = "Unknown"
@@ -207,7 +219,7 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    query = update.message.text
+    query = update.message.text.lower()
     
     results = collection.find(
     {"$text": {"$search": query}}
@@ -221,11 +233,8 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if not found:
 
-    movies = collection.find({}, {"file_name": 1})
-
+    movies = collection.find({}, {"file_name": 1}).limit(1000)
     movie_list = [m["file_name"] for m in movies]
-
-    from rapidfuzz import process
 
     suggestion = process.extractOne(query, movie_list, score_cutoff=60)
 
