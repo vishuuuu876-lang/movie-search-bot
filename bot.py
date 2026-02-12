@@ -71,8 +71,8 @@ async def save_user(user):
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-        if not update.message:
-        return
+if not update.message:
+    return
     
     # Allow only admins
     if update.effective_user.id not in ADMINS:
