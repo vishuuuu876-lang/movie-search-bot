@@ -13,6 +13,10 @@ from telegram.ext import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
+OWNER_ID = 7938487616
+ADMINS = [OWNER_ID]
+def is_admin(user_id):
+    return user_id in ADMINS
 FORCE_CHANNEL_1 = -1003505309336
 FORCE_CHANNEL_2 = -1003747985447
 CHANNEL_1_LINK = "https://t.me/+CZ5r2Hcn9fg3YWY0"
@@ -29,6 +33,10 @@ if not MONGO_URL:
 client = MongoClient(MONGO_URL)
 db = client["movie_bot"]
 collection = db["movies"]
+collection.create_index([("file_name", "text")])
+users_collection = db["users"]
+
+collection.create_index([("file_name", "text")])
 
 print("✅ MongoDB Connected Successfully")
 
@@ -47,6 +55,29 @@ async def check_force_join(user_id, context):
     except:
         return False
         
+async def save_user(user):
+
+    if not users_collection.find_one({"user_id": user.id}):
+
+        users_collection.insert_one({
+            "user_id": user.id,
+            "name": user.first_name
+        })
+
+        print(f"✅ New User Saved: {user.first_name}")
+
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    # Allow only admins
+    if update.effective_user.id not in ADMINS:
+        return
+
+    total_users = users_collection.count_documents({})
+
+    await update.message.reply_text(
+        f"📊 Bot Statistics\n\n👥 Total Users: {total_users}"
+    )
+
 # START COMMAND
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -55,6 +86,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user_id = update.effective_user.id
+    await save_user(update.effective_user)
     joined = await check_force_join(user_id, context)
 
     # If user NOT joined channels
@@ -78,6 +110,44 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎬 Movie Bot Ready!\n\nSend me a movie name."
     )
+
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage:\n/broadcast Your message")
+        return
+
+    message_text = " ".join(context.args)
+
+    users = users_collection.find()
+
+    success = 0
+    failed = 0
+
+    status_msg = await update.message.reply_text("🚀 Broadcasting started...")
+
+    for user in users:
+        try:
+            await context.bot.send_message(
+                chat_id=user["user_id"],
+                text=message_text
+            )
+            success += 1
+
+        except:
+            failed += 1
+
+    await status_msg.edit_text(
+        f"✅ Broadcast Complete!\n\n"
+        f"👥 Success: {success}\n"
+        f"❌ Failed/Blocked: {failed}"
+    )
+
 # AUTO INDEX WHEN FILE POSTED IN CHANNEL
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -136,11 +206,11 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    query = update.message.text.lower()
-
+    query = update.message.text
+    
     results = collection.find(
-        {"file_name": {"$regex": query, "$options": "i"}}
-    ).limit(5)
+    {"$text": {"$search": query}}
+).limit(5)
 
     found = False
 
@@ -176,10 +246,11 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("broadcast", broadcast))
+    app.add_handler(CommandHandler("stats", stats))
     app.add_handler(CallbackQueryHandler(button))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
-    app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
-
+app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
     print("✅ Bot Started Successfully")
 
     app.run_polling()
