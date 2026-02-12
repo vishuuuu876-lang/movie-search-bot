@@ -1,17 +1,20 @@
 import os
 from pymongo import MongoClient
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     MessageHandler,
     CommandHandler,
+    CallbackQueryHandler,   # ⭐ ADD THIS
     ContextTypes,
     filters,
 )
-
+    
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
+FORCE_CHANNEL_1 = -1003505309336
+FORCE_CHANNEL_2 = -1003747985447
 
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN missing")
@@ -26,14 +29,67 @@ db = client["movie_bot"]
 collection = db["movies"]
 
 print("✅ MongoDB Connected Successfully")
+async def check_force_join(user_id, context):
+
+    try:
+        member1 = await context.bot.get_chat_member(FORCE_CHANNEL_1, user_id)
+        member2 = await context.bot.get_chat_member(FORCE_CHANNEL_2, user_id)
+
+        if member1.status in ["member", "administrator", "creator"] and \
+           member2.status in ["member", "administrator", "creator"]:
+            return True
+
+        return False
+
+    except:
+        return False
 
 
 # START COMMAND
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    user_id = update.effective_user.id
+
+    joined = await check_force_join(user_id, context)
+
+    if not joined:
+
+        keyboard = [
+            [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/movieelee")],
+            [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+CZ5r2Hcn9fg3YWY0")],
+            [InlineKeyboardButton("✅ Joined", callback_data="check_join")]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(
+            "⚠️ Please join both channels to use this bot.",
+            reply_markup=reply_markup
+        )
+        return
+
     await update.message.reply_text(
-        "🎬 Movie Bot Ready!\n\nJust send me a movie name."
+        "🎬 Movie Bot Ready!\n\nSend me a movie name."
     )
 
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+
+    joined = await check_force_join(user_id, context)
+
+    if joined:
+        await query.edit_message_text(
+            "✅ You can now use the bot!\nSend a movie name."
+        )
+    else:
+        await query.answer(
+            "❌ You haven't joined the channels yet!",
+            show_alert=True
+        )
 
 # AUTO INDEX WHEN FILE POSTED IN CHANNEL
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -97,6 +153,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button))
 
     app.add_handler(
         MessageHandler(filters.ALL, auto_index)
