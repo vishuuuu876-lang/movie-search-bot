@@ -227,18 +227,31 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
+    user_id = query.from_user.id
+
     await query.answer()
 
-    user_id = query.from_user.id
-    joined = await check_force_join(user_id, context)
+    try:
+        member1 = await context.bot.get_chat_member(FORCE_CHANNEL_1, user_id)
+        member2 = await context.bot.get_chat_member(FORCE_CHANNEL_2, user_id)
 
-    if joined:
-        await query.edit_message_text(
-            "✅ You can now use the bot!\n\nSend a movie name."
-        )
-    else:
+        if member1.status in ["member", "administrator", "creator"] and \
+           member2.status in ["member", "administrator", "creator"]:
+
+            await query.edit_message_text(
+                "✅ You have joined both channels! Now send a movie name."
+            )
+
+        else:
+            await query.answer(
+                "❌ You haven't joined both channels!",
+                show_alert=True
+            )
+
+    except Exception as e:
+        print("JOIN CHECK ERROR:", e)
         await query.answer(
-            "❌ You haven't joined the channels yet!",
+            "⚠️ Bot must be admin in both channels!",
             show_alert=True
         )
 
