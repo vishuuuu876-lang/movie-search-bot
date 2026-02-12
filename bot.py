@@ -43,20 +43,20 @@ collection.create_index([("file_name", "text")])
 print("✅ MongoDB Connected Successfully")
 
 async def check_force_join(user_id, context):
-
     try:
         member1 = await context.bot.get_chat_member(FORCE_CHANNEL_1, user_id)
         member2 = await context.bot.get_chat_member(FORCE_CHANNEL_2, user_id)
 
-        if member1.status in ["member", "administrator", "creator"] and \
-           member2.status in ["member", "administrator", "creator"]:
-            return True
+        allowed_status = ["member", "administrator", "creator"]
 
-        return False
+        if member1.status in allowed_status and member2.status in allowed_status:
+            return True
+        else:
+            return False
 
     except Exception as e:
-    print("Force join error:", e)
-    return False
+        print("Force join error:", e)
+        return False
         
 async def save_user(user):
 
