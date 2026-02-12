@@ -153,25 +153,20 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------- MAIN ----------------
 
-def main():
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    app = Application.builder().token(BOT_TOKEN).build()
+    query = update.callback_query
+    await query.answer()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button))
+    user_id = query.from_user.id
+    joined = await check_force_join(user_id, context)
 
-    app.add_handler(
-        MessageHandler(filters.ALL, auto_index)
-    )
-
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, search)
-    )
-
-    print("✅ Bot Started Successfully")
-
-    app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
+    if joined:
+        await query.edit_message_text(
+            "✅ You can now use the bot!\n\nSend a movie name."
+        )
+    else:
+        await query.answer(
+            "❌ You haven't joined the channels yet!",
+            show_alert=True
+        )
