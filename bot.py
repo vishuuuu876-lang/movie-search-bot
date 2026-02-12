@@ -1,5 +1,7 @@
 import os
 from pymongo import MongoClient
+from rapidfuzz import process
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -33,7 +35,6 @@ if not MONGO_URL:
 client = MongoClient(MONGO_URL)
 db = client["movie_bot"]
 collection = db["movies"]
-collection.create_index([("file_name", "text")])
 users_collection = db["users"]
 
 collection.create_index([("file_name", "text")])
