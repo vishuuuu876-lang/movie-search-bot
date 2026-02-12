@@ -221,26 +221,21 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if not found:
 
-    # Get all movie names
-    all_movies = list(collection.find({}, {"file_name": 1}))
+    movies = collection.find({}, {"file_name": 1})
 
-    movie_names = [m["file_name"] for m in all_movies]
+    movie_list = [m["file_name"] for m in movies]
 
-    # Find closest match
-    match = process.extractOne(query, movie_names)
+    from rapidfuzz import process
 
-    if match and match[1] > 70:   # similarity score
-        similar_movie = collection.find_one({"file_name": match[0]})
+    suggestion = process.extractOne(query, movie_list, score_cutoff=60)
 
+    if suggestion:
         await update.message.reply_text(
-            f"🎬 Did you mean: {match[0]} ?"
+            f"❌ Movie not found.\n\nDid you mean 👉 {suggestion[0]} ?"
         )
-
-        await update.message.reply_document(similar_movie["file_id"])
-
     else:
         await update.message.reply_text("❌ Movie not found.")
-
+        
 # ---------------- MAIN ----------------
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
