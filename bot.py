@@ -219,7 +219,26 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         found = True
         await update.message.reply_document(movie["file_id"])
 
-    if not found:
+if not found:
+
+    # Get all movie names
+    all_movies = list(collection.find({}, {"file_name": 1}))
+
+    movie_names = [m["file_name"] for m in all_movies]
+
+    # Find closest match
+    match = process.extractOne(query, movie_names)
+
+    if match and match[1] > 70:   # similarity score
+        similar_movie = collection.find_one({"file_name": match[0]})
+
+        await update.message.reply_text(
+            f"🎬 Did you mean: {match[0]} ?"
+        )
+
+        await update.message.reply_document(similar_movie["file_id"])
+
+    else:
         await update.message.reply_text("❌ Movie not found.")
 
 # ---------------- MAIN ----------------
