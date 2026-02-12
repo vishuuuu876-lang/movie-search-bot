@@ -170,3 +170,20 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ You haven't joined the channels yet!",
             show_alert=True
         )
+
+def main():
+
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
+    app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
+
+    print("✅ Bot Started Successfully")
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
