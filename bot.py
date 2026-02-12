@@ -245,12 +245,35 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         suggestion = process.extractOne(query, movie_list, score_cutoff=60)
 
         if suggestion:
-            await update.message.reply_text(
-                f"❌ Movie not found.\n\nDid you mean 👉 {suggestion[0]}?"
-            )
-        else:
-            await update.message.reply_text("❌ Movie not found.")
+            # AUTOCORRECT (Fuzzy Suggestion)
+if not found:
+
+    movies = collection.find({}, {"file_name": 1}).limit(1000)
+    movie_list = [m["file_name"] for m in movies]
+
+    suggestion = process.extractOne(query, movie_list, score_cutoff=60)
+
+    if suggestion:
+
+        suggested_movie = suggestion[0]
+
+        keyboard = [
+            [InlineKeyboardButton(
+                f"🎬 {suggested_movie}",
+                callback_data=f"suggest_{suggested_movie}"
+            )]
+        ]
+
+        await update.message.reply_text(
+            f"❌ Movie not found.\n\nDid you mean **{suggested_movie}**?",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
+
+    else:
+        await update.message.reply_text("❌ Movie not found.")
         
+    
 # ---------------- MAIN ----------------
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -295,6 +318,8 @@ def main():
 
     # ✅ Button clicks (Force Join)
     app.add_handler(CallbackQueryHandler(button, pattern="check_join"))
+
+    app.add_handler(CallbackQueryHandler(suggestion_button, pattern="suggest_"))
 
     # ✅ Auto index movies from channel
     app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
