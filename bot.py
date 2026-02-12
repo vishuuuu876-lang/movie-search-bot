@@ -276,10 +276,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.answer()
 
-    # 🎬 SUGGESTION BUTTON CLICK
+    # ✅ Suggestion button click
     if data.startswith("suggest_"):
 
-        movie_name = data.replace("suggest_", "")
+        movie_name = data.replace("suggest_", "").lower()
 
         result = collection.find_one(
             {"file_name": {"$regex": f"^{movie_name}$", "$options": "i"}}
@@ -288,11 +288,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if result:
             await query.message.reply_document(result["file_id"])
         else:
-            await query.answer("Movie not found!", show_alert=True)
+            await query.message.reply_text("❌ Movie not found in database.")
 
         return
 
-    # 🔒 FORCE JOIN CHECK BUTTON
+
+    # ✅ Force Join Button
     if data == "check_join":
 
         try:
