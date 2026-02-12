@@ -246,12 +246,20 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
 
+    # ✅ Commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("stats", stats))
+
+    # ✅ Button clicks (Force Join)
     app.add_handler(CallbackQueryHandler(button))
-app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
+
+    # ✅ Auto index movies from channel
+    app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
+
+    # ✅ User search
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search))
+
     print("✅ Bot Started Successfully")
 
     app.run_polling()
