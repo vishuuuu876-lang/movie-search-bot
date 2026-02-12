@@ -235,16 +235,7 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         found = True
         await update.message.reply_document(movie["file_id"])
 
-
-    # 🤖 AUTOCORRECT (Fuzzy Suggestion)
-    if not found:
-
-        movies = collection.find({}, {"file_name": 1}).limit(1000)
-        movie_list = [m["file_name"] for m in movies]
-
-        suggestion = process.extractOne(query, movie_list, score_cutoff=60)
-
-        # AUTOCORRECT (Fuzzy Suggestion)
+# 🎬 AUTOCORRECT (Fuzzy Suggestion)
 if not found:
 
     movies = collection.find({}, {"file_name": 1}).limit(1000)
@@ -271,6 +262,7 @@ if not found:
 
     else:
         await update.message.reply_text("❌ Movie not found.")
+    
         
     
 # ---------------- MAIN ----------------
@@ -289,7 +281,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         movie_name = data.replace("suggest_", "")
 
         result = collection.find_one(
-            {"file_name": {"$regex": movie_name, "$options": "i"}}
+            {"file_name": {"$regex": f"^{movie_name}$", "$options": "i"}}
         )
 
         if result:
