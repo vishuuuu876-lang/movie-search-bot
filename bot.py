@@ -37,8 +37,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # AUTO INDEX WHEN FILE POSTED IN CHANNEL
 async def auto_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("RAW UPDATE:", update)
 
+    if update.channel_post:
+        print("CHANNEL ID:", update.channel_post.chat.id)
     msg = update.channel_post
     if not msg:
         return
@@ -98,7 +99,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
 
     app.add_handler(
-        MessageHandler(filters.Chat(CHANNEL_ID), auto_index)
+        MessageHandler(filters.ALL, auto_index)
     )
 
     app.add_handler(
