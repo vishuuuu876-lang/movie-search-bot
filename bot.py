@@ -244,8 +244,7 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         suggestion = process.extractOne(query, movie_list, score_cutoff=60)
 
-        if suggestion:
-            # AUTOCORRECT (Fuzzy Suggestion)
+        # AUTOCORRECT (Fuzzy Suggestion)
 if not found:
 
     movies = collection.find({}, {"file_name": 1}).limit(1000)
@@ -279,34 +278,54 @@ if not found:
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
+    data = query.data
     user_id = query.from_user.id
 
     await query.answer()
 
-    try:
-        member1 = await context.bot.get_chat_member(FORCE_CHANNEL_1, user_id)
-        member2 = await context.bot.get_chat_member(FORCE_CHANNEL_2, user_id)
+    # 🎬 SUGGESTION BUTTON CLICK
+    if data.startswith("suggest_"):
 
-        if member1.status in ["member", "administrator", "creator"] and \
-           member2.status in ["member", "administrator", "creator"]:
+        movie_name = data.replace("suggest_", "")
 
-            await query.edit_message_text(
-                "✅ You have joined both channels! Now send a movie name."
-            )
-
-        else:
-            await query.answer(
-                "❌ You haven't joined both channels!",
-                show_alert=True
-            )
-
-    except Exception as e:
-        print("JOIN CHECK ERROR:", e)
-        await query.answer(
-            "⚠️ Bot must be admin in both channels!",
-            show_alert=True
+        result = collection.find_one(
+            {"file_name": {"$regex": movie_name, "$options": "i"}}
         )
 
+        if result:
+            await query.message.reply_document(result["file_id"])
+        else:
+            await query.answer("Movie not found!", show_alert=True)
+
+        return
+
+    # 🔒 FORCE JOIN CHECK BUTTON
+    if data == "check_join":
+
+        try:
+            member1 = await context.bot.get_chat_member(FORCE_CHANNEL_1, user_id)
+            member2 = await context.bot.get_chat_member(FORCE_CHANNEL_2, user_id)
+
+            if member1.status in ["member", "administrator", "creator"] and \
+               member2.status in ["member", "administrator", "creator"]:
+
+                await query.edit_message_text(
+                    "✅ You have joined both channels! Now send a movie name."
+                )
+
+            else:
+                await query.answer(
+                    "❌ You haven't joined both channels!",
+                    show_alert=True
+                )
+
+        except Exception as e:
+            print("JOIN CHECK ERROR:", e)
+            await query.answer(
+                "⚠️ Bot must be admin in both channels!",
+                show_alert=True
+            )
+            
 def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
@@ -316,10 +335,7 @@ def main():
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("stats", stats))
 
-    # ✅ Button clicks (Force Join)
-    app.add_handler(CallbackQueryHandler(button, pattern="check_join"))
-
-    app.add_handler(CallbackQueryHandler(suggestion_button, pattern="suggest_"))
+    app.add_handler(CallbackQueryHandler(button))
 
     # ✅ Auto index movies from channel
     app.add_handler(MessageHandler(filters.Chat(CHANNEL_ID), auto_index))
