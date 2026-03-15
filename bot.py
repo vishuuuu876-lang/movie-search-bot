@@ -284,12 +284,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         {"file_name": {"$regex": f"^{movie_name}$", "$options": "i"}}
     )
 
-        if result:
-            await query.message.reply_document(result["file_id"])
-        else:
-            await query.message.reply_text("❌ Movie not found in database.")
+    if result:
+        await query.message.reply_document(result["file_id"])
+    else:
+        await query.message.reply_text("❌ Movie not found in database.")
 
-        return
+    return
 
 
     # ✅ Force Join Button
