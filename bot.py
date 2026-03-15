@@ -275,21 +275,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.answer()
 
-    # ✅ Suggestion button click
-     if data == "suggest_movie":
+    # Suggestion button click
+    if data == "suggest_movie":
 
-    movie_name = context.user_data.get("suggest_movie", "").lower()
+        movie_name = context.user_data.get("suggest_movie", "").lower()
 
-    result = collection.find_one(
-        {"file_name": {"$regex": f"^{movie_name}$", "$options": "i"}}
-    )
+        result = collection.find_one(
+            {"file_name": {"$regex": movie_name, "$options": "i"}}
+        )
 
-    if result:
-        await query.message.reply_document(result["file_id"])
-    else:
-        await query.message.reply_text("❌ Movie not found in database.")
+        if result:
+            await query.message.reply_document(result["file_id"])
+        else:
+            await query.message.reply_text("❌ Movie not found in database.")
 
-    return
+        return
 
 
     # ✅ Force Join Button
