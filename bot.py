@@ -247,14 +247,13 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if suggestion:
 
         suggested_movie = suggestion[0]
-
+        context.user_data["suggest_movie"] = suggested_movie
         keyboard = [[
-            InlineKeyboardButton(
-                f"🎬 {suggested_movie}",
-                callback_data=f"suggest_{suggested_movie}"
-            )
-        ]]
-
+    InlineKeyboardButton(
+        f"🎬 {suggested_movie}",
+        callback_data="suggest_movie"
+    )
+]]
         await update.message.reply_text(
             f"❌ Movie not found.\n\nDid you mean 👉 **{suggested_movie}**?",
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -277,13 +276,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     # ✅ Suggestion button click
-    if data.startswith("suggest_"):
+    if data == "suggest_movie":
 
-        movie_name = data.replace("suggest_", "").lower()
+    movie_name = context.user_data.get("suggest_movie", "").lower()
 
-        result = collection.find_one(
-            {"file_name": {"$regex": f"^{movie_name}$", "$options": "i"}}
-        )
+    result = collection.find_one(
+        {"file_name": {"$regex": f"^{movie_name}$", "$options": "i"}}
+    )
 
         if result:
             await query.message.reply_document(result["file_id"])
