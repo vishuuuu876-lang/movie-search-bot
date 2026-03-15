@@ -276,7 +276,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     # ✅ Suggestion button click
-    if data == "suggest_movie":
+     if data == "suggest_movie":
 
     movie_name = context.user_data.get("suggest_movie", "").lower()
 
